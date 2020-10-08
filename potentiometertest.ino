@@ -13,7 +13,7 @@ int escLVal=0;
 int maxVal = 180;
 
 void setup() {
-  escL.attach(escLPin,minPW,maxPW);
+  escL.attach(escLPin);
   escL.writeMicroseconds(500);
  // escR.attach(escRPin,minPW,maxPW);
   
@@ -40,7 +40,7 @@ void loop() {
   escL.write(escLVal);
   escR.write(escRVal);
   */
-  esc.writeMicroseconds(potVal);
+  escL.writeMicroseconds(potVal);
 
   
   Serial.print("Mapped potVal: ");
