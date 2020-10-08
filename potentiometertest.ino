@@ -44,7 +44,7 @@ void loop() {
 
   
   Serial.print("Mapped potVal: ");
-  Serial.print(potVal); Serial.print("; ");
+  Serial.print(potVal); Serial.println("; ");
   /*
   Serial.print("ESC L Value: ");
   Serial.print(escLVal); Serial.print("; ");
