@@ -3,7 +3,7 @@
 #include <Servo.h>
 
 const uint8_t potPin = A1; // input pin for the potentiometer
-int escLPin = 6; // digital pin for the left ESC
+const uint8_t escLPin = 6; // digital pin for the left ESC
 // int escRPin = 7; // digital pin for the right ESC
 
 Servo escL; // create servo object to control the left ESC
@@ -11,13 +11,11 @@ Servo escL; // create servo object to control the left ESC
 int escLVal=0;
 // int escRVal=0;
 int maxVal = 180;
-int minPW = 1000; // define minimum pulse width
-int maxPW = 2000; // define maximum pulse width
-
 
 void setup() {
   escL.attach(escLPin,minPW,maxPW);
-  escR.attach(escRPin,minPW,maxPW);
+  escL.writeMicroseconds(1500);
+ // escR.attach(escRPin,minPW,maxPW);
   
   Serial.begin(9600); // open the serial port at 9600 bps for Serial monitor
 
@@ -25,8 +23,8 @@ void setup() {
 
 void loop() {
   int potVal = analogRead(potPin); // reads raw value from pot
-  potVal = map(potVal, 0, 1023, 0, maxVal);
-  
+  potVal = map(potVal, 0, 1023, 1000, 2000);
+  /*
   if (potVal == maxVal/2) {
     escLVal=maxVal;
     escRVal=maxVal;
@@ -40,14 +38,18 @@ void loop() {
 
   escL.write(escLVal);
   escR.write(escRVal);
+  */
+  esc.writeMicroseconds(potVal);
 
   
   Serial.print("Mapped potVal: ");
   Serial.print(potVal); Serial.print("; ");
+  /*
   Serial.print("ESC L Value: ");
   Serial.print(escLVal); Serial.print("; ");
   Serial.print("ESC R Value: ");
   Serial.print(escRVal); Serial.println("; ");
+  */
   delay(100);
   
 }
