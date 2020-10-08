@@ -14,7 +14,7 @@ int maxVal = 180;
 
 void setup() {
   escL.attach(escLPin,minPW,maxPW);
-  escL.writeMicroseconds(1500);
+  escL.writeMicroseconds(500);
  // escR.attach(escRPin,minPW,maxPW);
   
   Serial.begin(9600); // open the serial port at 9600 bps for Serial monitor
@@ -23,7 +23,8 @@ void setup() {
 
 void loop() {
   int potVal = analogRead(potPin); // reads raw value from pot
-  potVal = map(potVal, 0, 1023, 1000, 2000);
+  potVal = map(potVal, 0, 1023, 0, 180);
+  
   /*
   if (potVal == maxVal/2) {
     escLVal=maxVal;
