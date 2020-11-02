@@ -1,0 +1,151 @@
+/*
+
+  EG3301R FTS-308 Shell Eco-Marathon Project
+  E-DIFFERENTIAL SYSTEM
+
+  Developed by:
+  Jagtap Sumeet Manish
+  Nathanael Septianto Pratama
+
+  Description:
+  This project aims to control the speed distribution to two sensored BLDC motors to establish the initial building blocks of an E-differential system
+  An RC transmitter is used to simulate throttle and steering of our vehicle as a proof of concept of our algorithm
+
+*/
+
+#include <buffer.h>
+#include <crc.h>
+#include <datatypes.h>
+#include <VescUart.h>
+
+#include <Servo.h>
+Servo esc1;
+Servo esc2;
+
+unsigned long start1;
+int pwm1; // throttle
+unsigned long start2;
+int pwm2; // steer
+
+int output1;
+int output2;
+
+VescUart UART1;
+VescUart UART2;
+
+void setup() {
+
+  pinMode(2, INPUT);    // input from r/c rec
+  pinMode(3, INPUT);    // input from r/c rec
+  attachInterrupt(0, timeit1, CHANGE);     // pin 2
+  attachInterrupt(1, timeit2, CHANGE);     // pin 3
+
+  esc1.attach(4);
+  esc2.attach(5);
+
+  Serial.begin(9600);
+  // Serials for UART Communication
+  Serial1.begin(38400); // ESC Left
+  Serial2.begin(19200); // ESC Right
+
+  UART1.setSerialPort(&Serial1);
+  UART2.setSerialPort(&Serial2);
+
+}
+
+void loop() {
+
+  if (pwm1 <= 1480) {
+    // throttle is at its default position
+    output1 = 0;
+    output2 = 0;
+  } else {
+    // throttle is engaged
+
+    // assign motor speed distribution
+    if (pwm2 < 1480) { 
+      // turn left
+      output1 = pwm1;
+      output2 = pwm1 - (pwm2 - 1480);
+    } else { 
+      // turn right
+      output1 = pwm1 + (pwm2 - 1480);
+      output2 = pwm1;
+    }
+
+    if (pwm1 > 1710) {
+      // set the minimum speed for both motors after speed distribution to be 1710
+      if (output1 < 1710) {
+        output1 = 1710;
+      }
+      if (output2 < 1710) {
+        output2 = 1710;
+      }
+    } else { 
+      // both motors run in accordance with the throttle
+      output1 = pwm1;
+      output2 = pwm2;
+    }
+
+    // setting min and max PWM outputs
+    output1 = constrain(output1, 1530, 1800);
+    output2 = constrain(output2, 1530, 1800);
+    
+    // assign PWM outputs to ESCs
+    esc1.writeMicroseconds(output1);
+    esc2.writeMicroseconds(output2);
+
+    Serial.print("pwm1: ");
+    Serial.print(pwm1);
+    Serial.print(' ');
+    Serial.print("output1: ");
+    Serial.print(output1);
+    Serial.print(' ');
+    Serial.print("pwm2: ");
+    Serial.print(pwm2);
+    Serial.print(' ');
+    Serial.print("output2: ");
+    Serial.println(output2);
+
+    if ( UART1.getVescValues() ) {
+      Serial.print("RPM Left: ");
+      Serial.println(UART1.data.rpm);
+    }
+    else
+    {
+      Serial.println("Failed to get data from ESC Left!");
+    }
+
+    if ( UART2.getVescValues() ) {
+      Serial.print("RPM Right: ");
+      Serial.println(UART2.data.rpm);
+    }
+    else
+    {
+      Serial.println("Failed to get data from ESC Right!");
+    }
+    delay(100);
+  }
+}
+
+
+// timer functions
+
+void timeit1() {
+  if (digitalRead(2) == HIGH) {
+    start1 = micros();
+  }
+  else {
+    pwm1 = micros() - start1;
+  }
+}
+
+
+void timeit2() {
+  if (digitalRead(3) == HIGH) {
+    start2 = micros();
+  }
+  else {
+    pwm2 = micros() - start2;
+  }
+}
