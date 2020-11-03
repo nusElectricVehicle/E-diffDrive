@@ -29,6 +29,8 @@ int pwm2; // steer
 
 int output1;
 int output2;
+float rpm1;
+float rpm2;
 
 VescUart UART1;
 VescUart UART2;
@@ -45,8 +47,8 @@ void setup() {
 
   Serial.begin(9600);
   // Serials for UART Communication
-  Serial1.begin(38400); // ESC Left
-  Serial2.begin(19200); // ESC Right
+  Serial1.begin(19200); // ESC Left
+  Serial2.begin(38400); // ESC Right
 
   UART1.setSerialPort(&Serial1);
   UART2.setSerialPort(&Serial2);
@@ -55,7 +57,7 @@ void setup() {
 
 void loop() {
 
-  if (pwm1 <= 1480) {
+  if (pwm1 <= 1648) {
     // throttle is at its default position
     output1 = 0;
     output2 = 0;
@@ -63,14 +65,14 @@ void loop() {
     // throttle is engaged
 
     // assign motor speed distribution
-    if (pwm2 < 1480) { 
+    if (pwm2 < 1495) {
       // turn left
-      output1 = pwm1;
-      output2 = pwm1 - (pwm2 - 1480);
-    } else { 
-      // turn right
-      output1 = pwm1 + (pwm2 - 1480);
+      output1 = pwm1 + (pwm2 - 1488);
       output2 = pwm1;
+    } else {
+      // turn right
+      output1 = pwm1;
+      output2 = pwm1 - (pwm2 - 1488);
     }
 
     if (pwm1 > 1710) {
@@ -81,51 +83,68 @@ void loop() {
       if (output2 < 1710) {
         output2 = 1710;
       }
-    } else { 
+    } else {
       // both motors run in accordance with the throttle
       output1 = pwm1;
       output2 = pwm2;
     }
 
     // setting min and max PWM outputs
-    output1 = constrain(output1, 1530, 1800);
-    output2 = constrain(output2, 1530, 1800);
-    
+    output1 = constrain(output1, 1500, 1900);
+    output2 = constrain(output2, 1500, 1900);
+
     // assign PWM outputs to ESCs
     esc1.writeMicroseconds(output1);
     esc2.writeMicroseconds(output2);
 
-    Serial.print("pwm1: ");
-    Serial.print(pwm1);
-    Serial.print(' ');
-    Serial.print("output1: ");
-    Serial.print(output1);
-    Serial.print(' ');
-    Serial.print("pwm2: ");
-    Serial.print(pwm2);
-    Serial.print(' ');
-    Serial.print("output2: ");
-    Serial.println(output2);
+    if (output1 <= 1692) {
+      rpm1 = 0;
+    } else {
+      rpm1 = 33.702 * output1 - 57037;
+    }
 
-    if ( UART1.getVescValues() ) {
+    if (output2 <= 1692) {
+      rpm2 = 0;
+    } else {
+      rpm2 = 33.702 * output2 - 57307;
+    }
+
+
+    /*
+      if ( UART1.getVescValues() ) {
       Serial.print("RPM Left: ");
       Serial.println(UART1.data.rpm);
-    }
-    else
-    {
+      }
+      else
+      {
       Serial.println("Failed to get data from ESC Left!");
-    }
+      }
 
-    if ( UART2.getVescValues() ) {
+      if ( UART2.getVescValues() ) {
       Serial.print("RPM Right: ");
       Serial.println(UART2.data.rpm);
-    }
-    else
-    {
+      }
+      else
+      {
       Serial.println("Failed to get data from ESC Right!");
-    }
-    delay(100);
+      }
+    */
   }
+  Serial.print(pwm1);
+  Serial.print(" output1: ");
+  Serial.print(output1);
+  Serial.print(' ');
+  Serial.print("rpm1: ");
+  Serial.print(rpm1);
+  Serial.print(' ');
+  Serial.print("output2: ");
+  Serial.print(output2);
+  Serial.print(' ');
+  Serial.print("rpm2: ");
+  Serial.print(rpm2);
+  Serial.print(' ');
+  Serial.println(pwm2);
+  delay(10);
 }
 
 
