@@ -1,39 +1,42 @@
 /*
+   EG3301R FTS-308 Shell Eco-Marathon Project
+   E-DIFFERENTIAL SYSTEM
 
-  EG3301R FTS-308 Shell Eco-Marathon Project
-  E-DIFFERENTIAL SYSTEM
+   Developed by:
+   Nathanael Septianto Pratama A0184578L
+   Jagtap Sumeet Manish A0184354B
 
-  Developed by:
-  Jagtap Sumeet Manish A0184354B
-  Nathanael Septianto Pratama A0184578L
-
-  Description:
-  This project aims to control the speed distribution to two sensored BLDC motors to establish the initial building blocks of an E-differential system
-  An RC transmitter is used to simulate throttle and steering of our vehicle as a proof of concept of our algorithm
-
+   Description:
+   This project aims to control the speed distribution to two sensored BLDC motors to establish the initial building blocks of an E-differential system
+   An RC transmitter is used to simulate throttle and steering of our vehicle as a proof of concept of our algorithm
 */
 
-#include <buffer.h>
-#include <crc.h>
-#include <datatypes.h>
+// define VESC UART Baud Rate
+#define BAUD_RATE 115200
+
+// include VESC UART to Arduino Mega library
 #include <VescUart.h>
 
+// include servo library for the ESCs
 #include <Servo.h>
+
+// initiate Servo class
 Servo esc1;
 Servo esc2;
 
+// initiate VescUart class
+VescUart UART1;
+VescUart UART2;
+
 unsigned long start1;
-int pwm1; // throttle
+int pwm1; // throttle PWM signal
 unsigned long start2;
-int pwm2; // steer
+int pwm2; // steer PWM signal
 
 int output1;
 int output2;
 float rpm1;
 float rpm2;
-
-VescUart UART1;
-VescUart UART2;
 
 void setup() {
 
@@ -45,10 +48,10 @@ void setup() {
   esc1.attach(4);
   esc2.attach(5);
 
-  Serial.begin(9600);
+  Serial.begin(BAUD_RATE);
   // Serials for UART Communication
-  Serial1.begin(19200); // ESC Left
-  Serial2.begin(38400); // ESC Right
+  Serial1.begin(BAUD_RATE); // ESC Left
+  Serial2.begin(BAUD_RATE); // ESC Right
 
   UART1.setSerialPort(&Serial1);
   UART2.setSerialPort(&Serial2);
@@ -57,7 +60,7 @@ void setup() {
 
 void loop() {
 
-  if (pwm1 <= 1648) {
+  if (pwm1 <= 1640) {
     // throttle is at its default position
     output1 = 0;
     output2 = 0;
@@ -65,11 +68,15 @@ void loop() {
     // throttle is engaged
 
     // assign motor speed distribution
-    if (pwm2 < 1495) {
+    if (pwm2 < 1488) {
       // turn left
       output1 = pwm1 + (pwm2 - 1488);
       output2 = pwm1;
-    } else {
+    } else if (pwm2 == 1488) {
+      // go straight
+      output1 = pwm1;
+      output2 = pwm2;
+    } else if (pwm2 > 1488) {
       // turn right
       output1 = pwm1;
       output2 = pwm1 - (pwm2 - 1488);
@@ -90,66 +97,73 @@ void loop() {
     }
 
     // setting min and max PWM outputs
-    output1 = constrain(output1, 1500, 1900);
-    output2 = constrain(output2, 1500, 1900);
+    output1 = constrain(output1, 1650, 1800);
+    output2 = constrain(output2, 1650, 1800);
 
     // assign PWM outputs to ESCs
     esc1.writeMicroseconds(output1);
     esc2.writeMicroseconds(output2);
 
-    if (output1 <= 1692) {
+    /* NOT IN USE: rpm converted from output
+      if (output1 <= 1692) {
       rpm1 = 0;
-    } else {
+      } else {
       rpm1 = 33.702 * output1 - 57037;
-    }
+      }
 
-    if (output2 <= 1692) {
+      if (output2 <= 1705) {
       rpm2 = 0;
-    } else {
+      } else {
       rpm2 = 33.702 * output2 - 57307;
+      }
+
+      }
+      /*
+      Serial.print(pwm1);
+      Serial.print(" output1: ");
+      Serial.print(output1);
+      Serial.print(' ');
+
+      Serial.print("rpm1: ");
+      Serial.print(rpm1);
+      Serial.print(' ');
+
+      Serial.print("output2: ");
+      Serial.print(output2);
+
+      Serial.print(' ');
+      Serial.print("rpm2: ");
+      Serial.println(rpm2);
+
+      Serial.print(' ');
+      Serial.println(pwm2);
+    */
+
+
+    // get rpm reading from the ESCs
+    if ( UART1.getVescValues() ) {
+      rpm1 = UART1.data.rpm / 7;
+      Serial.print("ESC Left = ");
+      Serial.print(rpm1);
+      Serial.print(" RPM; ");
+    } else {
+      Serial.println("Failed to get data from ESC Left!");
     }
 
-
-    /*
-      if ( UART1.getVescValues() ) {
-      Serial.print("RPM Left: ");
-      Serial.println(UART1.data.rpm);
-      }
-      else
-      {
-      Serial.println("Failed to get data from ESC Left!");
-      }
-
-      if ( UART2.getVescValues() ) {
-      Serial.print("RPM Right: ");
-      Serial.println(UART2.data.rpm);
-      }
-      else
-      {
+    if ( UART2.getVescValues() ) {
+      rpm2 = UART2.data.rpm / 7;
+      Serial.print("ESC Right = ");
+      Serial.print(rpm2);
+      Serial.println(" RPM");
+    } else {
       Serial.println("Failed to get data from ESC Right!");
-      }
-    */
+    }
+    delay(50);
   }
-  Serial.print(pwm1);
-  Serial.print(" output1: ");
-  Serial.print(output1);
-  Serial.print(' ');
-  Serial.print("rpm1: ");
-  Serial.print(rpm1);
-  Serial.print(' ');
-  Serial.print("output2: ");
-  Serial.print(output2);
-  Serial.print(' ');
-  Serial.print("rpm2: ");
-  Serial.print(rpm2);
-  Serial.print(' ');
-  Serial.println(pwm2);
-  delay(10);
 }
 
 
-// timer functions
-
+// timer functions timeit1() and timeit2()
 void timeit1() {
   if (digitalRead(2) == HIGH) {
     start1 = micros();
