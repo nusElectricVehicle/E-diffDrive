@@ -118,7 +118,7 @@ void loop() {
       }
 
       }
-      /*
+
       Serial.print(pwm1);
       Serial.print(" output1: ");
       Serial.print(output1);
