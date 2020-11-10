@@ -11,7 +11,7 @@
    An RC transmitter is used to simulate throttle and steering of our vehicle as a proof of concept of our algorithm
 */
 
-// define VESC UART Baud Rate
+// define VESC UART Baud Rate, which is 115200 bps
 #define BAUD_RATE 115200
 
 // include VESC UART to Arduino Mega library
@@ -21,22 +21,22 @@
 #include <Servo.h>
 
 // initiate Servo class
-Servo esc1;
-Servo esc2;
+Servo escL;
+Servo escR;
 
 // initiate VescUart class
-VescUart UART1;
-VescUart UART2;
+VescUart UART_R;
+VescUart UART_L;
 
 unsigned long start1;
-int pwm1; // throttle PWM signal
+int throttle; // throttle PWM signal
 unsigned long start2;
-int pwm2; // steer PWM signal
+int steer; // steer PWM signal
 
-int output1;
-int output2;
-float rpm1;
-float rpm2;
+int outputL;
+int outputR;
+float rpm_R;
+float rpm_L;
 
 void setup() {
 
@@ -45,121 +45,98 @@ void setup() {
   attachInterrupt(0, timeit1, CHANGE);     // pin 2
   attachInterrupt(1, timeit2, CHANGE);     // pin 3
 
-  esc1.attach(4);
-  esc2.attach(5);
+  escR.attach(5); // Serial1
+  escL.attach(6); // Serial2
 
   Serial.begin(BAUD_RATE);
   // Serials for UART Communication
-  Serial1.begin(BAUD_RATE); // ESC Left
-  Serial2.begin(BAUD_RATE); // ESC Right
+  Serial1.begin(BAUD_RATE); // ESC Right
+  Serial2.begin(BAUD_RATE); // ESC Left
 
-  UART1.setSerialPort(&Serial1);
-  UART2.setSerialPort(&Serial2);
+  UART_R.setSerialPort(&Serial1);
+  UART_L.setSerialPort(&Serial2);
 
 }
 
 void loop() {
 
-  if (pwm1 <= 1640) {
-    // throttle is at its default position
-    output1 = 0;
-    output2 = 0;
-  } else {
-    // throttle is engaged
-
+  if (throttle <= 1383) { // throttle is at its default position
+    outputL = 0;
+    outputR = 0;
+  } else { // throttle is engaged
     // assign motor speed distribution
-    if (pwm2 < 1488) {
+    if (steer < 1366) {
       // turn left
-      output1 = pwm1 + (pwm2 - 1488);
-      output2 = pwm1;
-    } else if (pwm2 == 1488) {
+      outputL = throttle + (steer - 1366);
+      outputR = throttle;
+    } else if (steer == 1366) {
       // go straight
-      output1 = pwm1;
-      output2 = pwm2;
-    } else if (pwm2 > 1488) {
+      outputL = throttle;
+      outputR = throttle;
+    } else if (steer > 1366) {
       // turn right
-      output1 = pwm1;
-      output2 = pwm1 - (pwm2 - 1488);
+      outputL = throttle;
+      outputR = throttle - (steer - 1366);
     }
 
-    if (pwm1 > 1710) {
-      // set the minimum speed for both motors after speed distribution to be 1710
-      if (output1 < 1710) {
-        output1 = 1710;
+    if (throttle > 1520) { // throttle is above minimum distributed speed
+      // set the minimum speed for both motors after speed distribution
+      if (outputL < 1520) {
+        outputL = 1520;
       }
-      if (output2 < 1710) {
-        output2 = 1710;
+      if (outputR < 1520) {
+        outputR = 1520;
       }
-    } else {
+    } else { // throttle is below minimum distributed speed
       // both motors run in accordance with the throttle
-      output1 = pwm1;
-      output2 = pwm2;
+      outputL = throttle;
+      outputR = throttle;
     }
 
-    // setting min and max PWM outputs
-    output1 = constrain(output1, 1650, 1800);
-    output2 = constrain(output2, 1650, 1800);
+    // setting min and max PWM outputs at 1400 and 1800
+    outputL = constrain(outputL, 1400, 1800);
+    outputR = constrain(outputR, 1400, 1800);
 
     // assign PWM outputs to ESCs
-    esc1.writeMicroseconds(output1);
-    esc2.writeMicroseconds(output2);
-
-    /* NOT IN USE: rpm converted from output
-      if (output1 <= 1692) {
-      rpm1 = 0;
-      } else {
-      rpm1 = 33.702 * output1 - 57037;
-      }
-
-      if (output2 <= 1705) {
-      rpm2 = 0;
-      } else {
-      rpm2 = 33.702 * output2 - 57307;
-      }
-
-      }
-
-      Serial.print(pwm1);
-      Serial.print(" output1: ");
-      Serial.print(output1);
-      Serial.print(' ');
-
-      Serial.print("rpm1: ");
-      Serial.print(rpm1);
-      Serial.print(' ');
-
-      Serial.print("output2: ");
-      Serial.print(output2);
-
-      Serial.print(' ');
-      Serial.print("rpm2: ");
-      Serial.println(rpm2);
-
-      Serial.print(' ');
-      Serial.println(pwm2);
-    */
-
-
-    // get rpm reading from the ESCs
-    if ( UART1.getVescValues() ) {
-      rpm1 = UART1.data.rpm / 7;
-      Serial.print("ESC Left = ");
-      Serial.print(rpm1);
-      Serial.print(" RPM; ");
-    } else {
-      Serial.println("Failed to get data from ESC Left!");
-    }
-
-    if ( UART2.getVescValues() ) {
-      rpm2 = UART2.data.rpm / 7;
-      Serial.print("ESC Right = ");
-      Serial.print(rpm2);
-      Serial.println(" RPM");
-    } else {
-      Serial.println("Failed to get data from ESC Right!");
-    }
-    delay(50);
+    escL.writeMicroseconds(outputL);
+    escR.writeMicroseconds(outputR);
   }
+  
+  Serial.print(throttle);
+  Serial.print(' ');
+  Serial.print(steer);
+  Serial.print(' ');
+
+  Serial.print(outputL);
+  Serial.print(' ');
+  Serial.print(outputR);
+  Serial.print(' ');
+
+  // get RPM reading from ESC Left
+  if ( UART_L.getVescValues() ) {
+    // divide ERPM from ESC by number of pole pairs (7) to get RPM
+    rpm_L = UART_L.data.rpm / 7; 
+    // display converted RPM to Serial Monitor
+    Serial.print("ESC Left = ");
+    Serial.print(rpm_L);
+    Serial.print(" RPM");
+  } else {
+    Serial.println("Failed to get data from ESC Left!");
+  }
+
+  // get rpm reading from ESC Right
+  if ( UART_R.getVescValues() ) {
+    // divide ERPM from ESC by number of pole pairs (7) to get RPM
+    rpm_R = UART_R.data.rpm / 7;
+    // display converted RPM to Serial Monitor
+    Serial.print(" ESC Right = ");
+    Serial.print(rpm_R);
+    Serial.println(" RPM; ");
+  } else {
+    Serial.println("Failed to get data from ESC Right!");
+  }
+
+  delay(100);
 }
 
 
@@ -169,7 +146,7 @@ void timeit1() {
     start1 = micros();
   }
   else {
-    pwm1 = micros() - start1;
+    throttle = micros() - start1;
   }
 }
 
@@ -179,6 +156,6 @@ void timeit2() {
     start2 = micros();
   }
   else {
-    pwm2 = micros() - start2;
+    steer = micros() - start2;
   }
 }
