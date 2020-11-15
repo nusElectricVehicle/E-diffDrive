@@ -29,9 +29,9 @@ VescUart UART_R;
 VescUart UART_L;
 
 unsigned long start1;
-int throttle; // throttle PWM signal
+int throttle; 
 unsigned long start2;
-int steer; // steer PWM signal
+int steer; 
 
 int outputL;
 int outputR;
@@ -144,18 +144,15 @@ void loop() {
 void timeit1() {
   if (digitalRead(2) == HIGH) {
     start1 = micros();
-  }
-  else {
+  } else {
     throttle = micros() - start1;
   }
 }
 
-
 void timeit2() {
   if (digitalRead(3) == HIGH) {
     start2 = micros();
-  }
-  else {
+  } else {
     steer = micros() - start2;
   }
 }
